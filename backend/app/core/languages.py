@@ -1,4 +1,14 @@
 SUPPORTED_LANGUAGES = {
-    "python": "python-executor image",
-    "javascript": "node-executor image"
+    "python": {
+        "name": "Python",
+        "image": "codeexec-python",
+        "file": "main.py",
+        "command": ["python", "/app/main.py"]
+    },
+    "javascript": {
+        "name": "JavaScript",
+        "image": "codeexec-node",
+        "file": "main.js",
+        "command": ["node", "/app/main.js"]
+    }
 }

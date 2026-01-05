@@ -1,131 +1,75 @@
 /**
  * API Service for Code Execution Engine
- * Handles all communication with the backend server
+ * Handles communication with FastAPI backend
+ * (Aligned with current backend implementation)
  */
 
 const API = {
-    // Base URL for the API - update this to match your backend
-    BASE_URL: 'http://localhost:8000',
-    
-    // Rate limiting state
-    rateLimitState: {
-        remaining: 10,
-        limit: 10,
-        resetTime: null
-    },
+    // Backend base URL
+    BASE_URL: "http://localhost:8000",
 
     /**
      * Execute code on the backend
-     * @param {string} code - The code to execute
-     * @param {string} language - The programming language
-     * @returns {Promise<Object>} - The execution result
+     * @param {string} code - Code to execute
+     * @param {string} language - Programming language
+     * @returns {Promise<Object>} - Execution result
      */
     async executeCode(code, language) {
         try {
-            const response = await fetch(`${this.BASE_URL}/api/execute`, {
-                method: 'POST',
+            const response = await fetch(`${this.BASE_URL}/execute`, {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     code: code,
-                    language: language
-                })
+                    language: language,
+                }),
             });
-
-            // Update rate limit info from headers
-            this.updateRateLimitFromResponse(response);
 
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle rate limit exceeded
-                if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please wait before trying again.');
-                }
-                throw new Error(data.detail || data.message || 'Execution failed');
+                // FastAPI error format
+                throw new Error(data.detail || "Execution failed");
             }
 
+            // Current backend returns only status + output
             return {
                 success: true,
-                output: data.output || '',
-                stdout: data.stdout || '',
-                stderr: data.stderr || '',
-                exitCode: data.exit_code ?? data.exitCode ?? 0,
-                executionTime: data.execution_time ?? data.executionTime ?? null,
-                error: data.error || null
+                output: data.output,
             };
         } catch (error) {
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('Cannot connect to server. Please ensure the backend is running.');
+            // Network / backend down
+            if (
+                error instanceof TypeError &&
+                error.message.toLowerCase().includes("fetch")
+            ) {
+                throw new Error(
+                    "Cannot connect to backend. Please ensure FastAPI server is running."
+                );
             }
+
             throw error;
         }
     },
 
     /**
-     * Check server health
-     * @returns {Promise<Object>} - Health status
+     * Check backend health
+     * @returns {Promise<Object>}
      */
     async checkHealth() {
         try {
-            const response = await fetch(`${this.BASE_URL}/api/health`);
+            const response = await fetch(`${this.BASE_URL}/health`);
             return await response.json();
         } catch (error) {
-            return { status: 'error', message: 'Server unreachable' };
+            return {
+                status: "error",
+                message: "Backend unreachable",
+            };
         }
     },
-
-    /**
-     * Get supported languages from the backend
-     * @returns {Promise<Array>} - List of supported languages
-     */
-    async getSupportedLanguages() {
-        try {
-            const response = await fetch(`${this.BASE_URL}/api/languages`);
-            if (response.ok) {
-                return await response.json();
-            }
-            return null;
-        } catch (error) {
-            console.warn('Could not fetch supported languages:', error);
-            return null;
-        }
-    },
-
-    /**
-     * Update rate limit state from response headers
-     * @param {Response} response - The fetch response
-     */
-    updateRateLimitFromResponse(response) {
-        const remaining = response.headers.get('X-RateLimit-Remaining');
-        const limit = response.headers.get('X-RateLimit-Limit');
-        const reset = response.headers.get('X-RateLimit-Reset');
-
-        if (remaining !== null) {
-            this.rateLimitState.remaining = parseInt(remaining, 10);
-        }
-        if (limit !== null) {
-            this.rateLimitState.limit = parseInt(limit, 10);
-        }
-        if (reset !== null) {
-            this.rateLimitState.resetTime = new Date(parseInt(reset, 10) * 1000);
-        }
-
-        // Dispatch event to update UI
-        window.dispatchEvent(new CustomEvent('rateLimitUpdated', {
-            detail: this.rateLimitState
-        }));
-    },
-
-    /**
-     * Get current rate limit state
-     * @returns {Object} - Current rate limit state
-     */
-    getRateLimitState() {
-        return { ...this.rateLimitState };
-    }
 };
 
-// Make API globally available
+// Expose API globally
 window.API = API;
