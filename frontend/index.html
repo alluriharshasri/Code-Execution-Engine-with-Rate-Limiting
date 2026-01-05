@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Execution Engine</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/editor.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-code"></i>
+                <h1>Code Execution Engine</h1>
+            </div>
+            <div class="header-controls">
+                <div class="rate-limit-info">
+                    <i class="fas fa-clock"></i>
+                    <span id="rate-limit-status">Requests: <span id="requests-remaining">10</span>/10</span>
+                </div>
+                <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Theme">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Editor Panel -->
+            <section class="editor-panel" id="editor-panel">
+                <div class="panel-header">
+                    <div class="language-selector">
+                        <label for="language-select">
+                            <i class="fas fa-language"></i>
+                            Language:
+                        </label>
+                        <select id="language-select">
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="java">Java</option>
+                            <option value="cpp">C++</option>
+                            <option value="c">C</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="php">PHP</option>
+                            <option value="typescript">TypeScript</option>
+                        </select>
+                    </div>
+                    <div class="editor-actions">
+                        <button class="btn btn-secondary" id="clear-btn" title="Clear Code">
+                            <i class="fas fa-eraser"></i>
+                            Clear
+                        </button>
+                        <button class="btn btn-secondary" id="copy-btn" title="Copy Code">
+                            <i class="fas fa-copy"></i>
+                            Copy
+                        </button>
+                        <button class="btn btn-primary" id="run-btn" title="Run Code (Ctrl+Enter)">
+                            <i class="fas fa-play"></i>
+                            Run
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-container" id="monaco-editor"></div>
+            </section>
+
+            <!-- Resizable Splitter -->
+            <div class="resizer" id="resizer">
+                <div class="resizer-handle"></div>
+            </div>
+
+            <!-- Output Panel -->
+            <section class="output-panel" id="output-panel">
+                <div class="panel-header">
+                    <h2>
+                        <i class="fas fa-terminal"></i>
+                        Output
+                    </h2>
+                    <div class="output-actions">
+                        <span class="execution-time" id="execution-time"></span>
+                        <button class="btn btn-secondary btn-sm" id="clear-output-btn" title="Clear Output">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="output-container">
+                    <div id="output-box" class="output-content">
+                        <div class="output-placeholder">
+                            <i class="fas fa-play-circle"></i>
+                            <p>Run your code to see the output here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loader">
+                <div class="loader-spinner"></div>
+                <p id="loading-message">Executing code...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <!-- Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+    <!-- App JS Files -->
+    <script src="js/api.js"></script>
+    <script src="js/themeToggle.js"></script>
+    <script src="js/languageSelector.js"></script>
+    <script src="js/resizer.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/outputBox.js"></script>
+    <script src="js/runCode.js"></script>
+</body>
+</html>

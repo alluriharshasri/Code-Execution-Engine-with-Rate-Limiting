@@ -1,0 +1,150 @@
+/* Editor Container Styles */
+.editor-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Monaco Editor Container */
+#monaco-editor {
+    width: 100%;
+    height: 100%;
+}
+
+/* Monaco Editor Overrides */
+.monaco-editor {
+    padding-top: 8px;
+}
+
+.monaco-editor .margin {
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Prevent text selection during resize */
+body.resizing {
+    user-select: none;
+    cursor: col-resize;
+}
+
+body.resizing * {
+    cursor: col-resize !important;
+}
+
+@media (max-width: 900px) {
+    body.resizing {
+        cursor: row-resize;
+    }
+    
+    body.resizing * {
+        cursor: row-resize !important;
+    }
+}
+
+/* Output Container Styles */
+.output-container {
+    flex: 1;
+    overflow: hidden;
+    background-color: var(--output-bg);
+}
+
+.output-content {
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.output-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.output-placeholder i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.output-placeholder p {
+    font-size: 14px;
+    font-family: var(--font-family);
+}
+
+/* Output States */
+.output-content.success {
+    color: var(--output-success);
+}
+
+.output-content.error {
+    color: var(--output-error);
+}
+
+.output-content.running {
+    color: var(--text-secondary);
+}
+
+/* Output Sections */
+.output-section {
+    margin-bottom: 12px;
+}
+
+.output-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-family: var(--font-family);
+}
+
+.output-stdout {
+    color: var(--text-primary);
+}
+
+.output-stderr {
+    color: var(--output-error);
+}
+
+.output-info {
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 12px;
+}
+
+/* Scrollbar Styles */
+.output-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.output-content::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.output-content::-webkit-scrollbar-thumb {
+    background: var(--bg-hover);
+    border-radius: 5px;
+}
+
+.output-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .output-content {
+        font-size: 13px;
+        padding: 12px;
+    }
+}
