@@ -1,9 +1,11 @@
+# Minimal image with gcc & g++
 FROM gcc:13-bookworm
 
-# Use adduser instead of useradd (more portable)
-RUN adduser --disabled-password --gecos "" runner
+# Create non-root user
+RUN useradd -m runner
 
 WORKDIR /app
 USER runner
 
+# Default command (overridden)
 CMD ["bash"]
