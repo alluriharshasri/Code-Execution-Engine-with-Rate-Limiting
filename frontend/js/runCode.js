@@ -42,7 +42,6 @@ const RunCode = {
 
         this.isRunning = true;
         this.setButtonState(true);
-        this.showLoading("Running your code...");
         window.OutputBox?.showLoading("Executing...");
 
         try {
@@ -63,7 +62,6 @@ const RunCode = {
             window.Toast?.show(error.message || "Execution failed", "error");
         } finally {
             this.isRunning = false;
-            this.hideLoading();
             this.setButtonState(false);
         }
     },
