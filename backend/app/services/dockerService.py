@@ -5,10 +5,98 @@ import subprocess
 import tempfile
 import os
 import shutil
+import threading
+from typing import List, Dict
+
+# -----------------------------
+# Constants
+# -----------------------------
 
 MAX_OUTPUT_CHARS = 10_000
 OUTPUT_TRUNCATION_MESSAGE = "\n\n--- Output truncated (limit reached) ---"
 
+DEFAULT_TIMEOUT = 10  # seconds (Java-safe)
+DEFAULT_MEMORY = "256m"
+DEFAULT_CPUS = "1.0"
+DEFAULT_PIDS = "256"
+
+# -----------------------------
+# Image Configuration
+# -----------------------------
+
+LANGUAGE_IMAGES: Dict[str, Dict[str, str]] = {
+    "python": {
+        "image": "codeexec-python:latest",
+        "dockerfile": "docker/python"
+    },
+    "java": {
+        "image": "codeexec-java:latest",
+        "dockerfile": "docker/java"
+    },
+    "javascript": {
+        "image": "codeexec-node:latest",
+        "dockerfile": "docker/node"
+    },
+    "go": {
+        "image": "codeexec-go:latest",
+        "dockerfile": "docker/go"
+    },
+    "cpp": {
+        "image": "codeexec-cpp:latest",
+        "dockerfile": "docker/cpp"
+    }
+}
+
+# -----------------------------
+# Thread-safe Image Locks
+# -----------------------------
+
+_IMAGE_LOCKS = {}
+_GLOBAL_LOCK = threading.Lock()
+
+# -----------------------------
+# Docker Image Helpers
+# -----------------------------
+
+def _image_exists(image: str) -> bool:
+    result = subprocess.run(
+        ["docker", "image", "inspect", image],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+    return result.returncode == 0
+
+
+def _build_image(image: str, dockerfile_dir: str):
+    subprocess.check_call([
+        "docker", "build",
+        "-t", image,
+        dockerfile_dir
+    ])
+
+
+def ensure_image(image: str, dockerfile_dir: str):
+    """
+    Ensure Docker image exists (thread-safe).
+    Builds the image if missing.
+    """
+
+    with _GLOBAL_LOCK:
+        if image not in _IMAGE_LOCKS:
+            _IMAGE_LOCKS[image] = threading.Lock()
+
+    with _IMAGE_LOCKS[image]:
+        if _image_exists(image):
+            return
+
+        print(f"[Docker] Image '{image}' not found. Building...")
+        _build_image(image, dockerfile_dir)
+        print(f"[Docker] Image '{image}' ready.")
+
+
+# -----------------------------
+# Docker Service
+# -----------------------------
 
 class DockerService:
     def __init__(self):
