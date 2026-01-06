@@ -43,7 +43,7 @@ LANGUAGE_IMAGES: Dict[str, Dict[str, str]] = {
     },
     "javascript": {
         "image": "codeexec-node:latest",
-        "dockerfile": os.path.join(BASE_DIR, "docker/node")
+        "dockerfile": os.path.join(BASE_DIR, "docker/javascript")
     },
     "go": {
         "image": "codeexec-go:latest",

@@ -181,6 +181,7 @@ body {
     flex: 1;
     overflow: hidden;
     gap: 0;
+    flex-direction: row;
 }
 
 /* Panel Styles */
@@ -194,14 +195,19 @@ body {
 
 .editor-panel {
     flex: none;
-    width: 55%;
-    min-width: 400px;
+    width: 65%;
+    min-width: 500px;
 }
 
 .output-panel {
     flex: 1;
-    min-width: 300px;
-    background-color: var(--bg-primary);
+    min-width: 250px;
+    max-width: 35%;
+    min-height: 0;
+    background-color: var(--output-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Resizable Splitter */
@@ -235,9 +241,8 @@ body {
 
 .resizer:hover .resizer-handle,
 .resizer.active .resizer-handle {
-    opacity: 1;
-    background-color: white;
-    height: 48px;
+    opacity: 0;
+    background-color: transparent;
 }
 
 .panel-header {
@@ -274,6 +279,8 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .language-selector label {
@@ -322,6 +329,7 @@ body {
 .editor-actions {
     display: flex;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 /* Output Actions */
@@ -484,62 +492,224 @@ body {
 }
 
 /* Responsive Design */
+
+/* Tablet and below */
 @media (max-width: 900px) {
     .main-content {
-        flex-direction: column;
+        flex-direction: column !important;
+        overflow: hidden;
     }
 
     .editor-panel {
-        flex: 1;
-        min-height: 200px;
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: 150px !important;
+        height: auto !important;
+        order: 1;
     }
 
     .output-panel {
-        width: 100%;
-        max-width: 100%;
-        height: 300px;
-        min-height: 150px;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        flex: 0 0 auto !important;
+        min-height: 100px !important;
+        order: 3;
+        overflow: hidden;
     }
 
     .resizer {
-        width: 100%;
+        width: 100% !important;
         height: 6px;
         cursor: row-resize;
+        order: 2;
+        flex-shrink: 0;
+        touch-action: none;
     }
 
     .resizer-handle {
         width: 40px;
-        height: 4px;
+        height: 3px;
     }
 
     .header {
-        padding: 10px 16px;
+        padding: 8px 12px;
+        min-height: 48px;
     }
 
     .logo h1 {
-        font-size: 16px;
+        font-size: 15px;
+    }
+
+    .logo i {
+        font-size: 20px;
+    }
+
+    .header-controls {
+        gap: 12px;
+    }
+
+    .rate-limit-info {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+
+    .rate-limit-info span {
+        display: none;
+    }
+
+    .theme-toggle-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    .panel-header {
+        height: 42px;
+        min-height: 42px;
+        max-height: 42px;
+        padding: 0 12px;
+    }
+
+    .language-selector label {
+        display: none;
+    }
+
+    .language-selector select {
+        min-width: 110px;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .editor-actions {
+        gap: 6px;
+    }
+
+    .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .btn i {
+        font-size: 12px;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+    .header {
+        padding: 6px 10px;
+        min-height: 44px;
+    }
+
+    .logo h1 {
+        font-size: 14px;
+    }
+
+    .logo i {
+        font-size: 18px;
     }
 
     .rate-limit-info {
         display: none;
     }
-}
 
-@media (max-width: 600px) {
+    .header-controls {
+        gap: 8px;
+    }
+
+    .panel-header {
+        height: 38px;
+        min-height: 38px;
+        max-height: 38px;
+        padding: 0 8px;
+    }
+
+    .panel-header h2 {
+        font-size: 11px;
+    }
+
+    .language-selector select {
+        min-width: 90px;
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
     .editor-actions {
         gap: 4px;
     }
 
     .btn {
-        padding: 8px 12px;
-        font-size: 13px;
+        padding: 5px 8px;
+        font-size: 11px;
     }
 
-    .btn span {
+    /* Hide button text on small screens, show only icons */
+    #clear-btn span,
+    #copy-btn span {
         display: none;
     }
 
-    .panel-header {
-        padding: 8px 12px;
+    #run-btn {
+        padding: 5px 12px;
+    }
+
+    .editor-panel {
+        min-height: 35vh;
+    }
+
+    .output-panel {
+        height: 30vh;
+    }
+
+    .output-actions .execution-time {
+        display: none;
+    }
+
+    .toast {
+        min-width: 240px;
+        max-width: 90vw;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .toast-container {
+        bottom: 12px;
+        right: 12px;
+        left: 12px;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 400px) {
+    .logo h1 {
+        font-size: 12px;
+    }
+
+    .logo i {
+        font-size: 16px;
+    }
+
+    .logo {
+        gap: 6px;
+    }
+
+    #run-btn span {
+        display: none;
+    }
+
+    .language-selector select {
+        min-width: 80px;
+    }
+
+    .editor-panel {
+        min-height: 30vh;
+    }
+
+    .output-panel {
+        height: 28vh;
     }
 }

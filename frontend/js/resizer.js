@@ -73,8 +73,9 @@ const Resizer = {
         this.startY = e.clientY;
 
         if (this.isVertical()) {
-            this.startEditorHeight = this.editorPanel.getBoundingClientRect().height;
-            this.startOutputHeight = this.outputPanel.getBoundingClientRect().height;
+            // Get computed heights including any inline styles
+            this.startEditorHeight = this.editorPanel.offsetHeight;
+            this.startOutputHeight = this.outputPanel.offsetHeight;
         } else {
             this.startEditorWidth = this.editorPanel.getBoundingClientRect().width;
             this.startOutputWidth = this.outputPanel.getBoundingClientRect().width;
@@ -94,33 +95,39 @@ const Resizer = {
             const newEditorHeight = this.startEditorHeight + deltaY;
             const newOutputHeight = this.startOutputHeight - deltaY;
 
-            // Minimum height to keep headers and some content visible
-            const minHeight = 200;
-            if (newEditorHeight >= minHeight && newOutputHeight >= minHeight) {
-                this.editorPanel.style.flex = 'none';
+            // Minimum heights to keep headers visible
+            const minEditorHeight = 100;
+            const minOutputHeight = 80;
+
+            if (newEditorHeight >= minEditorHeight && newOutputHeight >= minOutputHeight) {
+                this.editorPanel.style.flex = '0 0 auto';
                 this.editorPanel.style.height = `${newEditorHeight}px`;
+                this.outputPanel.style.flex = '0 0 auto';
                 this.outputPanel.style.height = `${newOutputHeight}px`;
+                
+                // Trigger Monaco layout update
+                window.Editor?.monacoEditor?.layout();
             }
         } else {
             const deltaX = e.clientX - this.startX;
             const newEditorWidth = this.startEditorWidth + deltaX;
             const newOutputWidth = this.startOutputWidth - deltaX;
 
-            // Minimum widths to keep all buttons visible
-            // Editor panel needs space for: language dropdown + 3 buttons (~600px)
-            // Output panel needs space for: title + execution time + button (~300px)
-            const minEditorWidth = 600;
-            const minOutputWidth = 300;
+            // Minimum widths - ensure buttons remain visible
+            const minEditorWidth = 500;
+            const minOutputWidth = 250;
             
             if (newEditorWidth >= minEditorWidth && newOutputWidth >= minOutputWidth) {
                 this.editorPanel.style.flex = 'none';
                 this.editorPanel.style.width = `${newEditorWidth}px`;
-                this.outputPanel.style.width = `${newOutputWidth}px`;
+                this.outputPanel.style.flex = '1';
+                this.outputPanel.style.width = '';
+                this.outputPanel.style.maxWidth = 'none';
+                
+                // Trigger Monaco layout update
+                window.Editor?.monacoEditor?.layout();
             }
         }
-
-        // Trigger Monaco layout update if available
-        window.Editor?.monacoEditor?.layout();
     },
 
     /**
@@ -140,15 +147,17 @@ const Resizer = {
      */
     reset() {
         if (this.isVertical()) {
-            this.editorPanel.style.flex = 'none';
-            this.editorPanel.style.height = '200px';
+            this.editorPanel.style.flex = '1';
+            this.editorPanel.style.height = '';
+            this.editorPanel.style.minHeight = '';
             this.outputPanel.style.flex = '1';
             this.outputPanel.style.height = '';
         } else {
             this.editorPanel.style.flex = 'none';
-            this.editorPanel.style.width = '600px';
+            this.editorPanel.style.width = '65%';
             this.outputPanel.style.flex = '1';
             this.outputPanel.style.width = '';
+            this.outputPanel.style.maxWidth = '35%';
         }
         window.Editor?.monacoEditor?.layout();
         window.Toast?.show('Panel sizes reset', 'info');
