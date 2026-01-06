@@ -17,7 +17,7 @@ class ExecutionService:
             }
 
         return self.docker.run(
-            image=config["image"],
+            language=language,          
             filename=config["file"],
             command=config["command"],
             code=code

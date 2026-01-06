@@ -1,70 +1,77 @@
 # dockerService.py
-# Hardened Docker execution for multiple languages (Java-safe)
+# Hardened Docker execution for multiple languages with auto image build
 
 import subprocess
 import tempfile
 import os
 import shutil
 import threading
-from typing import List, Dict
+from typing import Dict, List
 
-# -----------------------------
-# Constants
-# -----------------------------
+# =====================================================
+# PROJECT ROOT (ABSOLUTE PATH)
+# =====================================================
+
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../")
+)
+
+# =====================================================
+# CONSTANTS
+# =====================================================
 
 MAX_OUTPUT_CHARS = 10_000
 OUTPUT_TRUNCATION_MESSAGE = "\n\n--- Output truncated (limit reached) ---"
 
-DEFAULT_TIMEOUT = 10  # seconds (Java-safe)
+DEFAULT_TIMEOUT = 10
 DEFAULT_MEMORY = "256m"
 DEFAULT_CPUS = "1.0"
 DEFAULT_PIDS = "256"
 
-# -----------------------------
-# Image Configuration
-# -----------------------------
+# =====================================================
+# LANGUAGE → IMAGE CONFIG
+# =====================================================
 
 LANGUAGE_IMAGES: Dict[str, Dict[str, str]] = {
     "python": {
         "image": "codeexec-python:latest",
-        "dockerfile": "docker/python"
+        "dockerfile": os.path.join(BASE_DIR, "docker/python")
     },
     "java": {
         "image": "codeexec-java:latest",
-        "dockerfile": "docker/java"
+        "dockerfile": os.path.join(BASE_DIR, "docker/java")
     },
     "javascript": {
         "image": "codeexec-node:latest",
-        "dockerfile": "docker/node"
+        "dockerfile": os.path.join(BASE_DIR, "docker/node")
     },
     "go": {
         "image": "codeexec-go:latest",
-        "dockerfile": "docker/go"
+        "dockerfile": os.path.join(BASE_DIR, "docker/go")
     },
     "cpp": {
         "image": "codeexec-cpp:latest",
-        "dockerfile": "docker/cpp"
+        "dockerfile": os.path.join(BASE_DIR, "docker/cpp")
     }
 }
 
-# -----------------------------
-# Thread-safe Image Locks
-# -----------------------------
+# =====================================================
+# THREAD-SAFE IMAGE LOCKS
+# =====================================================
 
-_IMAGE_LOCKS = {}
+_IMAGE_LOCKS: Dict[str, threading.Lock] = {}
 _GLOBAL_LOCK = threading.Lock()
 
-# -----------------------------
-# Docker Image Helpers
-# -----------------------------
+# =====================================================
+# DOCKER IMAGE HELPERS
+# =====================================================
 
 def _image_exists(image: str) -> bool:
-    result = subprocess.run(
+    return subprocess.run(
         ["docker", "image", "inspect", image],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
-    )
-    return result.returncode == 0
+    ).returncode == 0
 
 
 def _build_image(image: str, dockerfile_dir: str):
@@ -75,11 +82,14 @@ def _build_image(image: str, dockerfile_dir: str):
     ])
 
 
-def ensure_image(image: str, dockerfile_dir: str):
+def ensure_image(language: str):
     """
-    Ensure Docker image exists (thread-safe).
-    Builds the image if missing.
+    Ensure Docker image exists for the given language.
+    Builds it if missing (thread-safe).
     """
+    cfg = LANGUAGE_IMAGES[language]
+    image = cfg["image"]
+    dockerfile_dir = cfg["dockerfile"]
 
     with _GLOBAL_LOCK:
         if image not in _IMAGE_LOCKS:
@@ -93,15 +103,13 @@ def ensure_image(image: str, dockerfile_dir: str):
         _build_image(image, dockerfile_dir)
         print(f"[Docker] Image '{image}' ready.")
 
-
-# -----------------------------
-# Docker Service
-# -----------------------------
+# =====================================================
+# DOCKER SERVICE
+# =====================================================
 
 class DockerService:
     def __init__(self):
-        # Default timeout (Python / JS)
-        self.timeout_seconds = 5
+        self.timeout_seconds = DEFAULT_TIMEOUT
 
     def _truncate(self, text: str) -> str:
         if not text:
@@ -110,13 +118,31 @@ class DockerService:
             return text
         return text[:MAX_OUTPUT_CHARS] + OUTPUT_TRUNCATION_MESSAGE
 
-    def run(self, image: str, filename: str, command: list[str], code: str):
-        temp_dir = tempfile.mkdtemp()
+    def run(
+        self,
+        language: str,
+        filename: str,
+        command: List[str],
+        code: str
+    ):
+        if language not in LANGUAGE_IMAGES:
+            return {
+                "stdout": "",
+                "stderr": f"Unsupported language: {language}",
+                "exit_code": -1
+            }
+
+        # 🔥 ENSURE IMAGE EXISTS (BUILD IF NEEDED)
+        ensure_image(language)
+
+        temp_dir = tempfile.mkdtemp(prefix="codeexec_")
 
         try:
             file_path = os.path.join(temp_dir, filename)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(code)
+
+            image = LANGUAGE_IMAGES[language]["image"]
 
             docker_cmd = [
                 "docker", "run", "--rm",
@@ -124,18 +150,19 @@ class DockerService:
                 # Security
                 "--network=none",
                 "--read-only",
-
-                # REQUIRED for Java (and future Go/Rust/C++)
-                "--tmpfs", "/tmp:rw,exec,size=128m",
-
-                # Resources
-                "--memory=256m",        # Java needs more memory
-                "--cpus=1.0",
-                "--pids-limit=256",     # JVM needs threads
-
                 "--security-opt=no-new-privileges",
 
+                # Runtime temp (Java / Go / C++)
+                "--tmpfs", "/tmp:rw,exec,size=128m",
+
+                # Resource limits
+                f"--memory={DEFAULT_MEMORY}",
+                f"--cpus={DEFAULT_CPUS}",
+                f"--pids-limit={DEFAULT_PIDS}",
+
+                # Code mount
                 "-v", f"{temp_dir}:/app:rw",
+
                 image,
                 *command
             ]
@@ -147,7 +174,7 @@ class DockerService:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=10  # Java-safe timeout
+                timeout=self.timeout_seconds
             )
 
             return {
@@ -159,7 +186,14 @@ class DockerService:
         except subprocess.TimeoutExpired:
             return {
                 "stdout": "",
-                "stderr": "Execution timed out (possible infinite loop or heavy JVM startup)",
+                "stderr": "Execution timed out (possible infinite loop or heavy compilation)",
+                "exit_code": -1
+            }
+
+        except Exception as e:
+            return {
+                "stdout": "",
+                "stderr": f"Execution failed: {str(e)}",
                 "exit_code": -1
             }
 
