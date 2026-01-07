@@ -1,16 +1,20 @@
 # execute.py
-# Handles code execution requests with validation + Docker execution
+# Handles code execution requests with validation + rate limiting + job queue
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from core.languages import SUPPORTED_LANGUAGES
-from services.executionService import ExecutionService
+from services.rateLimiter import is_allowed
+from services.queueService import enqueue_job, get_result
 
 router = APIRouter()
-executor = ExecutionService()
 
 MAX_CODE_SIZE = 10 * 1024  # 10 KB
 
+
+# =========================
+# Request / Response Models
+# =========================
 
 class ExecuteRequest(BaseModel):
     code: str = Field(..., description="Source code to execute")
@@ -19,13 +23,22 @@ class ExecuteRequest(BaseModel):
 
 class ExecuteResponse(BaseModel):
     status: str
-    output: str
+    job_id: str
 
+
+class ResultResponse(BaseModel):
+    status: str
+    output: str | None = None
+
+
+# =========================
+# Execute Endpoint
+# =========================
 
 @router.post("/execute", response_model=ExecuteResponse)
-def execute_code(request: ExecuteRequest):
-    code = request.code
-    language = request.language.strip().lower()
+def execute_code(request: Request, payload: ExecuteRequest):
+    code = payload.code
+    language = payload.language.strip().lower()
 
     # 1️⃣ Empty code
     if not code.strip():
@@ -42,16 +55,46 @@ def execute_code(request: ExecuteRequest):
             detail=f"Unsupported language: {language}"
         )
 
-    # 4️⃣ Execute via Docker
-    result = executor.execute(language, code)
+    # 4️⃣ Rate limiting (per IP)
+    client_ip = request.client.host
+    allowed = is_allowed(client_ip)
 
-    if result["exit_code"] != 0:
+    if allowed is not True:
+        _, retry_after = allowed
         raise HTTPException(
-            status_code=400,
-            detail=result["stderr"] or "Execution failed"
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {retry_after} seconds"
         )
 
+    # 5️⃣ Enqueue job (NO execution here)
+    job_payload = {
+        "language": language,
+        "code": code
+    }
+
+    job_id = enqueue_job(job_payload)
+
     return {
-        "status": "success",
-        "output": result["stdout"]
+        "status": "queued",
+        "job_id": job_id
+    }
+
+
+# =========================
+# Result Polling Endpoint
+# =========================
+
+@router.get("/result/{job_id}", response_model=ResultResponse)
+def fetch_result(job_id: str):
+    result = get_result(job_id)
+
+    if not result:
+        return {
+            "status": "running",
+            "output": None
+        }
+
+    return {
+        "status": "completed",
+        "output": result
     }
